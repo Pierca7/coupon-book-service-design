@@ -14,6 +14,7 @@ To those, the folowing assumptions were added:
 
 - Coupon book names aren't unique.
 - For simplicity purposes, a coupon can only be assigned to one user.
+- Coupon codes can either be redeemed only once or infinity times.
 - Coupon codes are unique even across coupon books.
 - Locks need to expire after a certain time to prevent coupons to be perpetually locked but never redeemed.
 
@@ -154,10 +155,23 @@ ASSIGN_RANDOM_COUPON(userId):
         ROLLBACK_TRANSACTION()
         return error("No available coupon found. Try again.")
 
+    couponBook = 
+        SELECT * FROM CouponBooks
+        WHERE Id = coupon.CouponBookId
+
+    numberOfCouponsAssignedToUser = 
+        SELECT COUNT(*) FROM Coupons
+        WHERE AssignedTo = userId 
+        AND CouponBookId = coupon.CouponBookId
+
+    IF numberOfCouponsAssignedToUser >= couponBook.MaxPerUser:
+        ROLLBACK_TRANSACTION()
+        return error("Maximum assignments for this user have been reached.")
+
     rowsUpdated = 
         UPDATE Coupons 
         SET AssignedTo = userId, UpdatedAt = GETDATE()
-        WHERE InternalId = coupon.InternalId AND AssignedTo IS NULL;
+        WHERE Code = coupon.Code AND AssignedTo IS NULL;
 
     if rowsUpdated == 0:
         ROLLBACK_TRANSACTION()
@@ -205,7 +219,6 @@ LOCK_COUPON(userId, code):
 ### POST /coupons/redeem/{code}
 This endpoint will use optimistic locking by looking for a match on the `UpdatedAt` column.
 
-
 ```
 REDEEM_COUPON(userId, code):
     VALIDATE_USER_ID_AND_ROLES()
@@ -227,10 +240,6 @@ REDEEM_COUPON(userId, code):
     IF couponBook.AllowMultipleRedemptions == FALSE AND coupon.TimesRedeemed > 0:
         ROLLBACK_TRANSACTION()
         return error("Coupon cannot be redeemed multiple times.")
-
-    IF couponBook.AllowMultipleRedemptions == TRUE AND coupon.TimesRedeemed >= couponBook.MaxPerUser:
-        ROLLBACK_TRANSACTION()
-        return error("Maximum redemptions for this coupon have been reached.")
 
     rowsUpdated = 
         UPDATE Coupons 
