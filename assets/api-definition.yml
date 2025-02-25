@@ -1,0 +1,307 @@
+openapi: 3.0.3
+info:
+  title: Coupon Book Service
+  description: |-
+    Coupon Book Service API definition
+  version: 1.0.0
+servers:
+  - url: https://clearly-not-functional-coupon-service.com/api/v1
+tags:
+  - name: coupons
+  - name: users
+paths:
+  /coupons:
+    post:
+      tags:
+        - coupons
+      summary: Create a new coupon book
+      description: Create a new coupon book
+      operationId: createCouponBook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCouponBookRequest'
+        
+      responses:
+        201:
+          description: Coupon book created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CouponBook'          
+        400:
+          description: Invalid request
+          
+      security:
+      - bearerAuth: []
+
+  /coupons/codes:
+    post:
+      tags:
+        - coupons
+      summary: Upload a list of codes to an existing coupon book
+      operationId: uploadCouponCodes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadCouponRequest'
+              
+      responses:
+        200:
+          description: Codes uploaded successfully
+        400:
+          description: Invalid request
+          
+      security:
+      - bearerAuth: []
+      
+  /coupons/assign:
+    post:
+      tags:
+        - coupons
+      summary: Assign a new random coupon code to a user
+      operationId: assignRandomCoupon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignRandomCouponRequest'
+              
+      responses:
+        200:
+          description: Coupon assigned successfully
+        400:
+          description: Invalid request
+          
+      security:
+      - bearerAuth: []
+      
+  /coupons/assign/{code}:
+    post:
+      tags:
+        - coupons
+      summary: Assign a specific coupon code to a user
+      operationId: assignSpecificCoupon
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignCouponRequest'
+
+      responses:
+        200:
+          description: Coupon assigned successfully
+        400:
+          description: Invalid request
+          
+      security:
+      - bearerAuth: []
+
+  /coupons/lock/{code}:
+    post:
+      tags:
+        - coupons
+      summary: Temporarily lock a coupon for redemption
+      operationId: lockCoupon
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LockCouponRequest'
+
+      responses:
+        200:
+          description: Coupon locked successfully
+        423:
+          description: Coupon is already locked
+        400:
+          description: Invalid request
+          
+      security:
+      - bearerAuth: []
+      
+  /coupons/redeem/{code}:
+    post:
+      tags:
+        - coupons
+      summary: Permanently redeem a coupon
+      operationId: redeemCoupon
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedeemCouponRequest'
+
+      responses:
+        200:
+          description: Coupon redeemed successfully
+        400:
+          description: Invalid request
+        423:
+          description: Coupon is already redeemed or locked
+          
+      security:
+      - bearerAuth: []
+      
+  /users/{userId}/coupons:
+    get:
+      tags:
+        - users
+      summary: Get all assigned coupon codes for a user
+      operationId: getUserCoupons
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: List of assigned coupons
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CouponsByUserResponse'
+        400:
+          description: Invalid request
+
+      security:
+      - bearerAuth: []
+      
+components:
+  schemas:
+    CouponBook:
+      required:
+        - id
+        - name
+        - multipleRedeemsAllowed
+        - createdAt
+        - updatedAt
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        multipleRedeemsAllowed:
+          type: boolean
+        createdAt:
+          type: string
+          format: date
+        updatedAt:
+          type: string
+          format: date
+    CouponCode:
+      required:
+        - id
+        - couponBookId
+        - code
+        - locked
+        - timesRedeemed
+        - createdAt
+        - updatedAt
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        couponBookId:
+          type: string
+          format: uuid
+        code:
+          type: string
+        locked:
+          type: boolean
+        assignedTo:
+          type: string
+          format: uuid
+          nullable: true
+        timesRedeemed:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date
+        updatedAt:
+          type: string
+          format: date          
+    CreateCouponBookRequest:
+      required:
+        - id
+        - name
+        - multipleRedeemsAllowed
+        - createdAt
+        - updatedAt
+      type: object
+      properties:
+        name:
+          type: string
+        multipleRedeemsAllowed:
+          type: boolean
+    UploadCouponRequest:
+      type: object
+      properties:
+        couponBookId:
+          type: string
+        codes:
+          type: array
+          items:
+            type: string
+    AssignCouponRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+        couponBookId:
+          type: string
+    AssignRandomCouponRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+    LockCouponRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+    RedeemCouponRequest:
+      type: object
+      properties:
+        userId:
+          type: string      
+    CouponsByUserResponse:
+      type: array
+      items:
+        $ref: "#/components/schemas/CouponCode"
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
