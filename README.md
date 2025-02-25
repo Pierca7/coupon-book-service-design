@@ -137,7 +137,7 @@ More details on the pseudocode section.
 
 ## Pseudocode for Key Operations
 
-### POST /coupons/assign
+#### POST /coupons/assign
 This endpoint will use pessimistic locking to lock the row while performing the update.
 
 ```
@@ -184,7 +184,7 @@ ASSIGN_RANDOM_COUPON(userId):
     return success("Coupon assigned", coupon)
 ```
 
-### POST /coupons/lock/{code}
+#### POST /coupons/lock/{code}
 This endpoint will use optimistic locking by looking for a match on the `UpdatedAt` column.
 
 ```
@@ -218,7 +218,7 @@ LOCK_COUPON(userId, code):
     return success("Coupon locked for redemption", coupon)
 ```
 
-### POST /coupons/redeem/{code}
+#### POST /coupons/redeem/{code}
 This endpoint will use optimistic locking by looking for a match on the `UpdatedAt` column.
 
 ```
