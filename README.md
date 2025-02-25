@@ -41,6 +41,8 @@ Azure is used as cloud platform, but most services have an equivalent one in AWS
     - To avoid heavy load on the database, a messaging queue could be implemented in the middle to update a one or a set of coupons at a time.
 - App Services and Functions will have horizontal auto-scaling policies based on memory and CPU usage, with at least one instance always on to prevent cold start issues.
 - App Services and Functions will make use of deployment slots in production to slowly redirect the traffic to a newest version of the API and services, monitoring for new issues and being able to quickly rollback if necesary.
+- Production environment services should be zone-redundant when possible to prevent datacenter livel failures.
+- At least 2 regions should be deployed in Production to protect against regional failures.
 - For bigger projects App Service and Azure Functions could be replaced by AKS using deployments and cronjobs. This will be more flexible and will remove the dependency on cloud specific services, but at the cost of more management overhead.
 - Caching can be done at the API gateway level. Since we only have one read related endpoint, coupons for a user, the data returned can be cached per user for that endpoint and the cache invalidated on API calls that perform write operations related to that user.
     - If more fine-grained cache control is needed an external cache like Redis can be added.
@@ -258,15 +260,23 @@ REDEEM_COUPON(userId, code):
 ```
 
 ## High-Level Deployment Strategy
-
-- GitOps
-- CI/CD pipelines (Azure Pipelines, GitHub Actions)
-- Infrastructure as code (Terraform, Pulumi) parametized to allow multiple environments and regions.
-- Multiple environments
+- Code changes should always be proposed through a PR. Automated tests should run over the code changes and developer should manually review the changes before being merged.
+- There should be different environments available. Code and infrastructure changes must be tested on lower environments before being promoted to production. An common example of enviroment promotion would be:
     - Development
     - QA
     - Staging
     - Production
-- API is containerized and uploaded to container registry
-
+- Once an API is deployed, breaking changes to its contract must be avoided. If breaking changes are inevitable, a new version must be deployed while keeping the old one until consumers are migrated.
+- Feature flags can be used to enable/disable isolated sets of features.
+- Infrastructure should be implemented through an IaC solution like Terraform or Pulumi. Parameters and variables can be used to deploy the same infrastucture to multiple enviroments or regions.
+    - Secrets like API keys or connection strings can be stored in KeyVault or similar.
+- Artifact generation should be done in CI/CD pipelines like Azure Pipelines or GitHub Actions. Some examples include:
+    - Build a new docker image for the latest API change, and publish it to the container registry.
+    - Update the version of the container to be used by Azure App Service, or change it's active deployment slot.
+    - Generate or apply a Terraform plan to an specific environment.
+- Deploying code changes can be done following a combination of Blue-Green and Canary rollout stragies:
+    - Staging and Production environments must be carbon-copies.
+    - Changes are deployed to Staging. Manual and automated tests are ran.
+    - Traffic is incrementally redirected to the Staging environment, monitoring logs and alerts in case of failures.
+    - If no issues are found, all traffic is redirected to Staging which becomes the new Production. In case of failure, traffic is redirected back to the old deployment.
 
