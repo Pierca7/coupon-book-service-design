@@ -185,7 +185,7 @@ components:
           type: string
         multipleRedeemsAllowed:
           type: boolean
-        maxRedeemsAllowed:
+        maxPerUser:
           type: integer
         createdAt:
           type: string
@@ -233,7 +233,7 @@ components:
         multipleRedeemsAllowed:
           type: boolean
           default: false
-        maxRedeemsAllowed:
+        maxPerUser:
           type: integer
         initialCouponAmount:
           type: integer
