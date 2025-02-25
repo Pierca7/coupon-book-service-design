@@ -1,8 +1,7 @@
 openapi: 3.0.3
 info:
   title: Coupon Book Service
-  description: |-
-    Coupon Book Service API definition
+  description: Coupon Book Service API definition
   version: 1.0.0
 servers:
   - url: https://clearly-not-functional-coupon-service.com/api/v1
@@ -23,20 +22,17 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateCouponBookRequest'
-        
       responses:
-        201:
+        '201':
           description: Coupon book created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CouponBook'          
-        400:
+                $ref: '#/components/schemas/CouponBook'
+        '400':
           description: Invalid request
-          
       security:
-      - bearerAuth: []
-
+        - bearerAuth: []
   /coupons/codes:
     post:
       tags:
@@ -49,16 +45,13 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UploadCouponRequest'
-              
       responses:
-        200:
+        '200':
           description: Codes uploaded successfully
-        400:
+        '400':
           description: Invalid request
-          
       security:
-      - bearerAuth: []
-      
+        - bearerAuth: []
   /coupons/assign:
     post:
       tags:
@@ -71,16 +64,13 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/AssignRandomCouponRequest'
-              
       responses:
-        200:
+        '200':
           description: Coupon assigned successfully
-        400:
+        '400':
           description: Invalid request
-          
       security:
-      - bearerAuth: []
-      
+        - bearerAuth: []
   /coupons/assign/{code}:
     post:
       tags:
@@ -99,16 +89,13 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/AssignCouponRequest'
-
       responses:
-        200:
+        '200':
           description: Coupon assigned successfully
-        400:
+        '400':
           description: Invalid request
-          
       security:
-      - bearerAuth: []
-
+        - bearerAuth: []
   /coupons/lock/{code}:
     post:
       tags:
@@ -127,18 +114,15 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LockCouponRequest'
-
       responses:
-        200:
+        '200':
           description: Coupon locked successfully
-        423:
-          description: Coupon is already locked
-        400:
+        '400':
           description: Invalid request
-          
+        '423':
+          description: Coupon is already locked
       security:
-      - bearerAuth: []
-      
+        - bearerAuth: []
   /coupons/redeem/{code}:
     post:
       tags:
@@ -157,18 +141,15 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/RedeemCouponRequest'
-
       responses:
-        200:
+        '200':
           description: Coupon redeemed successfully
-        400:
+        '400':
           description: Invalid request
-        423:
+        '423':
           description: Coupon is already redeemed or locked
-          
       security:
-      - bearerAuth: []
-      
+        - bearerAuth: []
   /users/{userId}/coupons:
     get:
       tags:
@@ -182,27 +163,19 @@ paths:
           schema:
             type: string
       responses:
-        200:
+        '200':
           description: List of assigned coupons
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CouponsByUserResponse'
-        400:
+        '400':
           description: Invalid request
-
       security:
-      - bearerAuth: []
-      
+        - bearerAuth: []
 components:
   schemas:
     CouponBook:
-      required:
-        - id
-        - name
-        - multipleRedeemsAllowed
-        - createdAt
-        - updatedAt
       type: object
       properties:
         id:
@@ -218,15 +191,11 @@ components:
         updatedAt:
           type: string
           format: date
+        coupons: 
+          type: array
+          items:
+            $ref: '#/components/schemas/CouponCode'
     CouponCode:
-      required:
-        - id
-        - couponBookId
-        - code
-        - locked
-        - timesRedeemed
-        - createdAt
-        - updatedAt
       type: object
       properties:
         id:
@@ -251,21 +220,24 @@ components:
           format: date
         updatedAt:
           type: string
-          format: date          
+          format: date
     CreateCouponBookRequest:
       required:
-        - id
         - name
-        - multipleRedeemsAllowed
-        - createdAt
-        - updatedAt
       type: object
       properties:
         name:
           type: string
         multipleRedeemsAllowed:
           type: boolean
+          default: false
+        initialCouponAmount:
+          type: integer
+          default: 0
     UploadCouponRequest:
+      required:
+        - couponBookId
+        - codes
       type: object
       properties:
         couponBookId:
@@ -275,6 +247,9 @@ components:
           items:
             type: string
     AssignCouponRequest:
+      required:
+        - userId
+        - couponBookId
       type: object
       properties:
         userId:
@@ -282,24 +257,30 @@ components:
         couponBookId:
           type: string
     AssignRandomCouponRequest:
+      required:
+        - userId    
       type: object
       properties:
         userId:
           type: string
     LockCouponRequest:
+      required:
+        - userId    
       type: object
       properties:
         userId:
           type: string
     RedeemCouponRequest:
+      required:
+        - userId    
       type: object
       properties:
         userId:
-          type: string      
+          type: string
     CouponsByUserResponse:
       type: array
       items:
-        $ref: "#/components/schemas/CouponCode"
+        $ref: '#/components/schemas/CouponCode'
   securitySchemes:
     bearerAuth:
       type: http

@@ -1,17 +1,63 @@
 # Coupon Book Service 
 
+## Overview
 
-## Assumptions
+This is a design document describing the high-level architecture and API for a service that allows businesses to create, distribute, and manage coupons.
+
+This service supports operations such as creating coupon books, assigning coupons to users, locking coupons temporarily during redemption attempts, and redeeming coupons
+
+The original assumptions included:
+- Coupon book codes can optionally be redeemed more than once per user (coupon book parameter level)
+- Max number of codes per Coupon Book assigned per member can also be optionally specified (coupon book parameter level)
+
+To those, the folowing assumptions were added:
 
 - For simplicity purposes, a coupon can only be assigned to one user.
 - Locks need to expire after a certain time to prevent coupons to be perpetually locked but never redeemed.
-
 
 ## High Level System Architecture
 
 ## High Level Database Design
 
+![Database ER diagram](assets/images/database.png)
+
+### Relationships
+- CouponBooks (One) --> (Many) Coupons
+
+### Contraint
+
+
+#### CouponBooks
+- `InternalId`: `NOT NULL AUTO_INCREMENT`.
+- `Id`: `NOT NULL UNIQUE`.
+- `Name`: `NOT NULL`.
+- `AllowMultipleRedemptions`: `NOT NULL DEFAULT false`.
+- `MaxPerUser`: `NOT NULL DEFAULT 1`.
+- `CreatedAt`: `NOT NULL DEFAULT GETDATE()`.
+- `UpdatedAt`: `NOT NULL DEFAULT GETDATE()`.
+
+#### Coupons
+- `InternalId`: `NOT NULL AUTO_INCREMENT`.
+- `CouponBookId`: `NOT NULL`.
+- `Code`: `NOT NULL UNIQUE`.
+- `TimesRedeemed`: `NOT NULL DEFAULT 0 CHECK >= 0`.
+- `CreatedAt`: `NOT NULL DEFAULT GETDATE()`.
+- `UpdatedAt`: `NOT NULL DEFAULT GETDATE()`.
+
+### Notes
+- Users won't be stored in the database, but managed by an external service (i.e. AAD, Amazon Cognito, Firebase, etc) that would allow login with e-mail or social media accounts. The service will provide an unique Id per user, that would be used in the database in the `AssignedTo`, `LockedTo` fields to identify the user.
+- Two Id related fields are used in tables
+    - `InternalId` will be for internal use only and won't be exposed to the end clients.
+    - `Id/Code` will be exposed to the end clients.
+
 ## API endpoints
+The API endpoints are defined following the OpenAPI specification. The definition is located `assets/api-definition.yml` and can be seen in the online Swagger UI ([See API definition online](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/Pierca7/coupon-book-service-design/refs/heads/main/assets/api-definition.yml))
+
+
+### Highlights
+
+#### /users/{userId}/coupons
+This endpoint performs a read-only operation over the 
 
 ## Pseudocode for Key Operations
 
@@ -28,177 +74,3 @@
 - API is containerized and uploaded to container registry
 
 
-# Coupon Book Service
-Coupon Book Service API definition
-
-## Version: 1.0.0
-
-### /coupons
-
-#### POST
-##### Summary:
-
-Create a new coupon book
-
-##### Description:
-
-Create a new coupon book
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 201 | Coupon book created |
-| 400 | Invalid request |
-
-##### Security
-
-| Security Schema | Scopes |
-| --- | --- |
-| bearerAuth | |
-
-### /coupons/codes
-
-#### POST
-##### Summary:
-
-Upload a list of codes to an existing coupon book
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Codes uploaded successfully |
-| 400 | Invalid request |
-
-##### Security
-
-| Security Schema | Scopes |
-| --- | --- |
-| bearerAuth | |
-
-### /coupons/assign
-
-#### POST
-##### Summary:
-
-Assign a new random coupon code to a user
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Coupon assigned successfully |
-| 400 | Invalid request |
-
-##### Security
-
-| Security Schema | Scopes |
-| --- | --- |
-| bearerAuth | |
-
-### /coupons/assign/{code}
-
-#### POST
-##### Summary:
-
-Assign a specific coupon code to a user
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| code | path |  | Yes | string |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Coupon assigned successfully |
-| 400 | Invalid request |
-
-##### Security
-
-| Security Schema | Scopes |
-| --- | --- |
-| bearerAuth | |
-
-### /coupons/lock/{code}
-
-#### POST
-##### Summary:
-
-Temporarily lock a coupon for redemption
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| code | path |  | Yes | string |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Coupon locked successfully |
-| 400 | Invalid request |
-| 423 | Coupon is already locked |
-
-##### Security
-
-| Security Schema | Scopes |
-| --- | --- |
-| bearerAuth | |
-
-### /coupons/redeem/{code}
-
-#### POST
-##### Summary:
-
-Permanently redeem a coupon
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| code | path |  | Yes | string |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | Coupon redeemed successfully |
-| 400 | Invalid request |
-| 423 | Coupon is already redeemed or locked |
-
-##### Security
-
-| Security Schema | Scopes |
-| --- | --- |
-| bearerAuth | |
-
-### /users/{userId}/coupons
-
-#### GET
-##### Summary:
-
-Get all assigned coupon codes for a user
-
-##### Parameters
-
-| Name | Located in | Description | Required | Schema |
-| ---- | ---------- | ----------- | -------- | ---- |
-| userId | path |  | Yes | string |
-
-##### Responses
-
-| Code | Description |
-| ---- | ----------- |
-| 200 | List of assigned coupons |
-| 400 | Invalid request |
-
-##### Security
-
-| Security Schema | Scopes |
-| --- | --- |
-| bearerAuth | |
